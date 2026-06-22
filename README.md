@@ -1,118 +1,133 @@
-# 🚀 Desafio Técnico - API de Usuários
+# Desafio Técnico Bagaggio — API de Gerenciamento de Usuários
 
-## 📖 Contexto
-
-Recentemente, um dos desenvolvedores da equipe recebeu a missão de criar uma API para gerenciamento de usuários.
-
-O projeto foi entregue e já está funcionando, mas existe um detalhe: era a primeira vez que esse desenvolvedor trabalhava sozinho em uma API desse porte. 😅
-
-Como acontece em muitos projetos reais, a aplicação evoluiu, algumas decisões foram tomadas com pressa, outras poderiam ter sido melhor planejadas e alguns pontos acabaram ficando para trás durante o desenvolvimento.
-
-Agora você recebeu a responsabilidade de assumir essa base de código.
-
-Sua missão não é reescrever tudo do zero.
-
-Queremos entender como você investiga uma aplicação existente, identifica oportunidades de melhoria e realiza ajustes que deixem o projeto mais confiável, organizado e fácil de manter.
+Solução desenvolvida por **Roberta Fernandes** para o Desafio Técnico de Estágio 2026 da Bagaggio. O projeto original foi entregue com uma base de código funcional; minha missão foi investigar, identificar problemas e realizar as melhorias necessárias.
 
 ---
 
-## 🎯 Objetivo
+## 🛠️ Tecnologias
 
-Analise a API existente e faça as melhorias que considerar necessárias.
-
-Não existe uma lista fechada de problemas para corrigir.
-
-Queremos observar como você explora a aplicação, interpreta o código e toma decisões técnicas para evoluir o projeto.
-
-Pense como alguém que acabou de entrar em uma equipe e recebeu a tarefa de dar continuidade a um sistema já em produção.
-
----
-
-## 🤖 Uso de Inteligência Artificial
-
-O uso de ferramentas de IA é permitido.
-
-No entanto, durante a avaliação, você poderá ser questionado sobre as alterações realizadas.
-
-Por isso, é importante compreender e conseguir explicar as decisões tomadas ao longo do desenvolvimento.
+- Python 3.11+
+- FastAPI
+- SQLAlchemy 2.0
+- SQLite
+- Passlib + bcrypt
+- Uvicorn
 
 ---
 
-## ▶️ Como Executar o Projeto
+## ▶️ Como Executar
 
-### Criar ambiente virtual
+### 1. Criar o ambiente virtual
 
 ```bash
 python -m venv .venv
 ```
 
-### Ativar ambiente virtual
+### 2. Ativar o ambiente virtual
 
 **Windows**
-
 ```bash
 .venv\Scripts\activate
 ```
 
-**Linux/MacOS**
-
+**Linux / macOS**
 ```bash
 source .venv/bin/activate
 ```
 
-### Instalar dependências
+### 3. Instalar as dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Inicializar banco de dados
+### 4. Inicializar o banco de dados
 
 ```bash
 python database/seed.py
 ```
 
-### Executar a API
+> Isso cria o banco SQLite com 40 usuários de exemplo. Rode novamente a qualquer momento para resetar os dados.
+
+### 5. Executar a API
 
 ```bash
 uvicorn main:app --reload
 ```
 
-### Documentação
+### 6. Acessar a documentação interativa
 
-```text
+```
 http://localhost:8000/api/users/docs
 ```
 
 ---
 
-## 📌 Endpoints Disponíveis
+## 📌 Endpoints
 
-* `POST /users/`
-* `GET /users/`
-* `GET /users/{user_id}`
-* `PATCH /users/{user_id}`
-* `DELETE /users/{user_id}`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `POST` | `/users/` | Criar novo usuário |
+| `GET` | `/users/` | Listar todos os usuários |
+| `GET` | `/users/{user_id}` | Buscar usuário por ID |
+| `PATCH` | `/users/{user_id}` | Atualizar dados do usuário |
+| `DELETE` | `/users/{user_id}` | Deletar usuário |
 
 ---
 
-## 📦 O Que Esperamos na Entrega
+## 📁 Estrutura do Projeto
 
-Sua entrega deve conter:
+```
+├── database/
+│   ├── __init__.py       # Configuração do banco e sessão
+│   └── seed.py           # Dados iniciais para desenvolvimento
+├── entities/
+│   └── user.py           # Modelo SQLAlchemy do usuário
+├── repository/
+│   └── users.py          # Camada de acesso ao banco de dados
+├── routes/
+│   └── users/
+│       └── router.py     # Endpoints da API
+├── main.py               # Ponto de entrada da aplicação
+└── requirements.txt
+```
 
-* Código atualizado;
-* Melhorias que você considerar relevantes;
-* Instruções para execução do projeto;
-* Explicação das alterações realizadas;
-* Justificativas para decisões importantes;
 ---
 
-## 📝 Importante
+## 🔧 Melhorias Realizadas
 
-Não buscamos uma solução perfeita.
+Assumi a base de código existente e realizei as seguintes correções e melhorias:
 
-O objetivo deste desafio é entender como você trabalha com uma base de código existente, como investiga problemas, organiza suas ideias e evolui uma aplicação de forma incremental.
+### Bugs críticos corrigidos
 
-Explique suas decisões, documente seu raciocínio e sinta-se à vontade para apontar pontos que você optou por não alterar.
+- **DELETE deletava o usuário errado** — a query buscava `user_id + 1` em vez de `user_id`, deletando sempre o registro seguinte ao solicitado
+- **Verificação de duplicidade com campos trocados** — a checagem de email duplicado comparava `User.name` com `payload.email`, tornando-a ineficaz
+- **Senha armazenada em texto puro** — adicionado hashing com bcrypt via passlib; senhas nunca são salvas em plaintext
+- **Senha exposta nas respostas** — removido o campo `password` de todas as respostas da API
 
-Boa sorte! 🍀
+### Bugs de comportamento corrigidos
+
+- **Impossível desativar usuário via PATCH** — `if payload.is_active` tratava `False` como falsy; corrigido para `if payload.is_active is not None`
+- **GET retornava HTTP 200 para usuário não encontrado** — corrigido para retornar HTTP 404 com `HTTPException`
+- **Email sem constraint de unicidade no banco** — adicionado `unique=True` ao campo `email` no modelo
+
+### Melhorias de organização
+
+- **Repository ignorado pelo router** — o arquivo `repository/users.py` existia mas era completamente ignorado; refatorado o router para usar suas funções, aplicando separação de responsabilidades
+- **Funções mortas removidas do main.py** — removidas três funções sem uso e um endpoint de debug exposto em produção (`/debug/users-count`)
+
+---
+
+## 🔮 Melhorias Futuras Identificadas
+
+Itens identificados durante a análise que não foram implementados por estarem fora do escopo de manutenção:
+
+- **Testes automatizados** — não há testes no projeto; adicionar testes unitários para o repository e testes de integração para os endpoints com pytest seria o próximo passo natural
+- **Variáveis de ambiente** — a URL do banco está hard-coded; uso de `python-dotenv` com um arquivo `.env` permitiria configuração por ambiente sem alterar código
+- **Paginação com metadados** — o `GET /users/` aceita `skip` e `limit` mas não retorna total de registros ou número de páginas, o que seria útil para o cliente implementar navegação
+
+---
+
+## 👩‍💻 Autora
+
+**Roberta Fernandes** — Desafio Técnico de Estágio 2026
